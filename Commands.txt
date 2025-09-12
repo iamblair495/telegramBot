@@ -1,0 +1,3 @@
+start - Find out what the bot can do.
+help - Get assistance for this bot.
+custom - can be anything you want to test
