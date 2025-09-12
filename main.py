@@ -1,5 +1,5 @@
 import logging
-#import responses
+import responses
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 API_KEY = '7763875651:AAE5WdaEocbKQRlSUxaP5klQB7K6MFGOfLo'
