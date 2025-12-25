@@ -1,15 +1,26 @@
 import logging
-import responses
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
 import os
-from dotenv import load_dotenv
 import requests
-from requests.auth import HTTPBasicAuth
+import responses
+
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from dotenv import load_dotenv
+
+import time
+import hmac
+import hashlib
+import traceback
+
+import json
+
+from decimal import Decimal
 
 # automatically load .env
 load_dotenv()
 
 TELE_API_KEY = os.getenv("TELE_API_KEY")
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
+BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 #the below bit will be added if we add mpesa features
 CONS_KEY = os.getenv("CONS_KEY")
 CONS_SEC = os.getenv("CONS_SEC")
@@ -21,9 +32,58 @@ logging.basicConfig(
 )
 logging.info("Starting Bot...")
 
+if not BINANCE_API_KEY or not BINANCE_API_SECRET:
+    logging.error("Binance API keys not loaded!!")
+
+
+
+def get_futures_balance():
+    #fetchess futures accnt balance using read-only API returning JSON response
+    base_url = "https://fapi.binance.com"
+    endpoint = "/fapi/v2/account"
+
+    # Returns timestamp of the action performed
+    timestamp = int(time.time() * 1000)
+    query_string = f"timestamp={timestamp}"
+
+    signature = hmac.new(
+        BINANCE_API_SECRET.encode(),
+        query_string.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    url = f"{base_url}{endpoint}?{query_string}&signature={signature}"
+    headers = {"X-MBX-APIKEY": BINANCE_API_KEY}
+
+    response = requests.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+    return response.json()
+
 # Commands
 async def start(update, context):
     await update.message.reply_text("Hello there! What's up!!")
+    logging.info("Start command triggered.")
+
+    #fetch the futures balance
+    try:
+        logging.info("Calling get_futures_balance...")
+        data = get_futures_balance()
+        logging.info(f"Binance response: {data}")
+
+        total_balance = float(data["totalWalletBalance"])
+        available_balance = float(data["availableBalance"])
+
+        message = (
+            f"📊 Binance Futures Balance\n\n"
+            f"Total Wallet Balance: ${total_balance:.2f}\n"
+            f"Available Balance: ${available_balance:.2f}"
+        )
+        await update.message.reply_text(message)
+
+    except Exception as e:
+        logging.error(f"Error fetching binance balance: {e}")
+        logging.error(traceback.format_exc())
+        await update.message.reply_text("Failed to fetch Futures balance.")
 
 async def help_command(update, context):
     await update.message.reply_text("Try typing anything and I will do my best to respond!!")
