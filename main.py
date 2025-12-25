@@ -3,11 +3,16 @@ import responses
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 import os
 from dotenv import load_dotenv
+import requests
+from requests.auth import HTTPBasicAuth
 
 # automatically load .env
 load_dotenv()
 
-API_KEY = os.getenv("API_KEY")
+TELE_API_KEY = os.getenv("TELE_API_KEY")
+#the below bit will be added if we add mpesa features
+CONS_KEY = os.getenv("CONS_KEY")
+CONS_SEC = os.getenv("CONS_SEC")
 
 # Logging setup
 logging.basicConfig(
@@ -28,9 +33,13 @@ async def custom_command(update, context):
 
 # Message handler
 async def handle_message(update, context):
-    text = update.message.text
+    text = str(update.message.text)
     logging.info(f"user ({update.message.chat.id}) says: {text}")
-    await update.message.reply_text(text)
+
+    #Get responses from responses.py
+    response = await responses.get_response(text)
+
+    await update.message.reply_text(response)
 
 # Error handler
 async def error_handler(update, context):
@@ -38,7 +47,7 @@ async def error_handler(update, context):
 
 # Main Function
 def main():
-    app = Application.builder().token(API_KEY).build()
+    app = Application.builder().token(TELE_API_KEY).build()
 
     # Register handlers
     app.add_handler(CommandHandler("start", start))
@@ -50,7 +59,7 @@ def main():
     app.add_error_handler(error_handler)
 
     # Run the bot
-    app.run_polling()
+    app.run_polling(1.0)
 
 if __name__ == "__main__":
     main()
