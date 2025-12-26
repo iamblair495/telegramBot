@@ -1,5 +1,4 @@
 import re
-import asyncio
 
 async def process_message(message, response_array, response):
     #split message and punctuation into an array
